@@ -47,7 +47,12 @@ function init() {
   // Populate the choices.
   $("td").css("vertical-align", "top");
   var list = $("#configs_list");
+  var configs = [];
   $.each(results, function(config, _) {
+    configs.push(config);
+  });
+  configs.sort();
+  $.each(configs, function(_, config) {
     list.append("<br/>" + choice(config, ucfirst(config)));
   });
   list = $("#test_modes_list");
