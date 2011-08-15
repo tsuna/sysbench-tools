@@ -48,8 +48,10 @@ function init() {
   $("td").css("vertical-align", "top");
   var list = $("#configs_list");
   var configs = [];
-  $.each(results, function (config, _) {
+  var confignum = 0;
+  $.each(results, function (config, test2results) {
     configs.push(config);
+    test2results["_color"] = confignum++;
   });
   configs.sort();
   $.each(configs, function (_, config) {
@@ -88,8 +90,7 @@ function selectall(event) {
 function selected(what) {
   var matched = [];
   $(what).find("input:checked").each(function () {
-    var mode = $(this).attr("name");
-    matched.push(mode);
+    matched.push($(this).attr("name"));
   });
   return matched;
 }
@@ -132,19 +133,18 @@ function redraw() {
   }
   var configs = {};
   var hasconfig = false;
-  $.each(selected("#configs_list"), function (_, config) {
-    configs[config] = true;
-    hasconfig = true;
+  $("#configs_list").find("input").each(function () {
+    var config = $(this);
+    var checked = config.is(":checked");
+    configs[config.attr("name")] = checked;
+    config.parent().css("backgroundColor", "");
+    hasconfig |= checked;
   });
   if (!hasconfig) {
     graphs.text("Pick a config.");
     return;
   }
 
-  var need_legend = {"container": "#legend"};
-  var no_legend = {"show": false};
-
-  var graphnum = 0;
   $.each(test_modes, function (j, mode) {
     var tr = $("<tr>");
     graphs.append(tr);
@@ -154,14 +154,13 @@ function redraw() {
       tr.append(td);
       var graph = $("<div>").css("width", "400px").css("height", "200px");
       var lines = [];
-      var confignum = 0;
       $.each(results, function (config, test2results) {
-        var color = confignum++;
-        if (!configs.hasOwnProperty(config)) {
+        if (!configs[config]
+            || !test2results[mode]) {
           return;
         }
         lines.push({"label": config,
-                    "color": color,
+                    "color": test2results["_color"],
                     "shadowSize": 0,
                     "data": test2results[mode]["averages"][metric],
                     // Custom field
@@ -178,27 +177,25 @@ function redraw() {
                           "series": {"lines": {"show": true},
                                      "points": {"show": true}},
                           "grid": {"hoverable": true},
-                          "legend": graphnum == 0 ? need_legend : no_legend};
+                          "legend": {"show": false}};
       if (METRICS[metric].toLowerCase().indexOf("bytes") != -1
           || metric == "throughput") {
         graph_params.yaxis.tickFormatter = humanReadableBytes;
       }
-      $.plot(graph, lines, graph_params);
+      var plot = $.plot(graph, lines, graph_params);
       enableTooltip(graph);
-      if (graphnum == 0) {
-        // Copy legend color over.
-        var labels = {};
-        $(".legendLabel").each(function (_, label) {
-          labels[label.innerText] = label;
+      // Copy legend color over.
+      var series = plot.getData();
+      $.each(results, function (config, test2results) {
+        var checkbox = $("#id" + config);
+        var color = undefined;
+        $.each(series, function (i, s) {
+          if (s.label == config) {
+            color = s.color;
+          }
         });
-        $.each(configs, function (config, _) {
-          var label = labels[config];
-          label = $(label.parentElement.childNodes[0].childNodes[0].childNodes[0]);
-          var checkbox = $("#id" + config);
-          checkbox.parent().css("backgroundColor", label.css("borderTopColor"));
-        });
-      }
-      graphnum++;
+        checkbox.parent().css("backgroundColor", color);
+      });
     });
   });
 }
