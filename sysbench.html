@@ -118,6 +118,15 @@ function humanReadableBytes(n) {
   return n.toFixed(1) + suffix + "B";
 }
 
+function prettyNumber(val, axis) {
+  if (val < 10) {
+    return val.toFixed(2);
+  } else if (val < 100) {
+    return val.toFixed(1);
+  }
+  return val.toFixed();
+}
+
 function redraw() {
   var graphs = $("#graphs");
   graphs.empty();
@@ -173,7 +182,7 @@ function redraw() {
       });
       td.append(graph);
 
-      var graph_params = {"yaxis": {"min": 0},
+      var graph_params = {"yaxis": {"min": 0, "tickFormatter": prettyNumber},
                           "series": {"lines": {"show": true},
                                      "points": {"show": true}},
                           "grid": {"hoverable": true},
