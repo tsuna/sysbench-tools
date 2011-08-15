@@ -48,15 +48,15 @@ function init() {
   $("td").css("vertical-align", "top");
   var list = $("#configs_list");
   var configs = [];
-  $.each(results, function(config, _) {
+  $.each(results, function (config, _) {
     configs.push(config);
   });
   configs.sort();
-  $.each(configs, function(_, config) {
+  $.each(configs, function (_, config) {
     list.append("<br/>" + choice(config, ucfirst(config)));
   });
   list = $("#test_modes_list");
-  $.each(TESTS, function(mode, descr) {
+  $.each(TESTS, function (mode, descr) {
     list.append("<br/>" + choice(mode, descr));
   });
   list = $("#metric_table");
@@ -64,7 +64,7 @@ function init() {
   list.append(tr);
   var td = null;
   var i = 0;
-  $.each(METRICS, function(metric, descr) {
+  $.each(METRICS, function (metric, descr) {
     if (i % 4 == 0) {
       td = $("<td>");
       tr.append(td);
