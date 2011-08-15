@@ -182,9 +182,13 @@ function redraw() {
       enableTooltip(graph);
       if (graphnum == 0) {
         // Copy legend color over.
+        var labels = {};
+        $(".legendLabel").each(function (_, label) {
+          labels[label.innerText] = label;
+        });
         $.each(configs, function (config, _) {
-          var label = $(".legendLabel:contains('" + config + "')");
-          label = $(label.prev().children()[0].childNodes[0]);
+          var label = labels[config];
+          label = $(label.parentElement.childNodes[0].childNodes[0].childNodes[0]);
           var checkbox = $("#id" + config);
           checkbox.parent().css("backgroundColor", label.css("borderTopColor"));
         });
