@@ -1,0 +1,26 @@
+If you've ever run sysbench, you know it's impossible to reasonably compare
+more than 2 tests at once.  Beyond that, you *need* graphs.  Seems like
+everyone has their own home-grown set of little scripts to parse sysbench's
+output and turn it into a CSV or something else.  This is my attempt at it.
+I tried various existing things but none of them satisfied me.
+
+HOWTO USE
+=========
+
+When you use sysbench, you're typically trying to find which configuration
+works best among a set of different configs.  A "configuration" could be a
+certain type of HDD vs another one, a filesystem vs another one, etc.  For
+a given configuration, you typically run a range of tests, with different
+parameters (e.g. different number of concurrent threads and whatnot). This
+script simply wants you to put the output of all the tests you ran for a
+given configuration into one directory.  Look at the sample script included
+in this repository, runtests.sh, for an example.
+
+So using the example included in this repository:
+  mkdir ~/out
+  cd ~/out
+  ~/runtests.sh
+  ~/sysbench-log2json.py */*
+
+Now you should have a big `results.js', which you need to put in the same
+directory as `sysbench.html'.  Open the HTML file and enjoy pretty graphs.

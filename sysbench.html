@@ -1,0 +1,243 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+Copyright (C) 2011  Benoit Sigoure
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
+-->
+<html>
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <title>Sysbench results</title>
+    <script language="javascript" type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.6.2/jquery.min.js"></script>
+    <script language="javascript" type="text/javascript" src="https://raw.github.com/flot/flot/master/jquery.flot.js"></script>
+    <script language="javascript" type="text/javascript" src="results.js"></script>
+  </head>
+<body>
+<table border="0" id="choices"><tr>
+<td id="configs_list">Configs:</td>
+<td id="test_modes_list">Test mode:</td>
+<td>Metric:<table id="metric_table"></table></td>
+</tr><tr>
+<td><input type="checkbox" class="all" for="configs_list"> All</td>
+<td><input type="checkbox" class="all" for="test_modes_list"> All</td>
+<td><input type="checkbox" class="all" for="metric_table"> All</td>
+</tr></table>
+<div id="legend" style="display:none"></div>
+<table id="graphs"></table>
+<script type="text/javascript">
+function ucfirst(str) {
+  return str.charAt(0).toUpperCase() + str.slice(1);
+}
+
+function init() {
+  function choice(id, label) {
+    return '<span><input type="checkbox" name="' + id + '" id="id' + id + '">'
+      + '<label for="id' + id + '">' + label + '</label></span>';
+  }
+  // Populate the choices.
+  $("td").css("vertical-align", "top");
+  var list = $("#configs_list");
+  $.each(results, function(config, _) {
+    list.append("<br/>" + choice(config, ucfirst(config)));
+  });
+  list = $("#test_modes_list");
+  $.each(TESTS, function(mode, descr) {
+    list.append("<br/>" + choice(mode, descr));
+  });
+  list = $("#metric_table");
+  var tr = $("<tr>");
+  list.append(tr);
+  var td = null;
+  var i = 0;
+  $.each(METRICS, function(metric, descr) {
+    if (i % 4 == 0) {
+      td = $("<td>");
+      tr.append(td);
+    }
+    td.append((i % 4 == 0 ? "" : "<br/>") + choice(metric, descr));
+    i++;
+  });
+  
+  choices = $("#choices");
+  choices.find(".all").change(selectall);
+  choices.find("input").change(redraw);
+  choices.find(".all[for=configs_list]").click();
+}
+
+function selectall(event) {
+  var name = event.target.attributes["for"].value;
+  var checked = event.target.checked;
+  $("#" + name).find("input").attr("checked", checked);
+}
+
+function selected(what) {
+  var matched = [];
+  $(what).find("input:checked").each(function () {
+    var mode = $(this).attr("name");
+    matched.push(mode);
+  });
+  return matched;
+}
+
+var ONE_KB = 1024;
+var ONE_MB = 1024 * ONE_KB;
+var ONE_GB = 1024 * ONE_MB;
+var ONE_TB = 1024 * ONE_GB;
+
+function humanReadableBytes(n) {
+  var suffix = "";
+  if (n > ONE_TB) {
+    n = n / ONE_TB;
+    suffix = "T";
+  } else if (n > ONE_GB) {
+    n = n / ONE_GB;
+    suffix = "G";
+  } else if (n > ONE_MB) {
+    n = n / ONE_MB;
+    suffix = "M";
+  } else if (n > ONE_KB) {
+    n = n / ONE_KB;
+    suffix = "K";
+  }
+  return n.toFixed(1) + suffix + "B";
+}
+
+function redraw() {
+  var graphs = $("#graphs");
+  graphs.empty();
+  var test_modes = selected("#test_modes_list");
+  if (test_modes.length == 0) {
+    graphs.text("Pick a test mode.");
+    return;
+  }
+  var metrics = selected("#metric_table");
+  if (metrics.length == 0) {
+    graphs.text("Pick a metric.");
+    return;
+  }
+  var configs = {};
+  var hasconfig = false;
+  $.each(selected("#configs_list"), function (_, config) {
+    configs[config] = true;
+    hasconfig = true;
+  });
+  if (!hasconfig) {
+    graphs.text("Pick a config.");
+    return;
+  }
+
+  var need_legend = {"container": "#legend"};
+  var no_legend = {"show": false};
+
+  var graphnum = 0;
+  $.each(test_modes, function (j, mode) {
+    var tr = $("<tr>");
+    graphs.append(tr);
+    $.each(metrics, function (i, metric) {
+      var td = $("<td>");
+      td.append($("<h3>").text(TESTS[mode] + ": " + METRICS[metric]));
+      tr.append(td);
+      var graph = $("<div>").css("width", "400px").css("height", "200px");
+      var lines = [];
+      var confignum = 0;
+      $.each(results, function (config, test2results) {
+        var color = confignum++;
+        if (!configs.hasOwnProperty(config)) {
+          return;
+        }
+        lines.push({"label": config,
+                    "color": color,
+                    "shadowSize": 0,
+                    "data": test2results[mode]["averages"][metric],
+                    // Custom field
+                    "benchmark": {
+                      "config": config,
+                      "mode": mode,
+                      "metric": metric,
+                    },
+                    });
+      });
+      td.append(graph);
+
+      var graph_params = {"yaxis": {"min": 0},
+                          "series": {"lines": {"show": true},
+                                     "points": {"show": true}},
+                          "grid": {"hoverable": true},
+                          "legend": graphnum == 0 ? need_legend : no_legend};
+      if (METRICS[metric].toLowerCase().indexOf("bytes") != -1
+          || metric == "throughput") {
+        graph_params.yaxis.tickFormatter = humanReadableBytes;
+      }
+      $.plot(graph, lines, graph_params);
+      enableTooltip(graph);
+      if (graphnum == 0) {
+        // Copy legend color over.
+        $.each(configs, function (config, _) {
+          var label = $(".legendLabel:contains('" + config + "')");
+          label = $(label.prev().children()[0].childNodes[0]);
+          var checkbox = $("#id" + config);
+          checkbox.parent().css("backgroundColor", label.css("borderTopColor"));
+        });
+      }
+      graphnum++;
+    });
+  });
+}
+
+function enableTooltip(graph) {
+  var curseries = null;
+  var curpoint = null;
+  graph.bind("plothover", function (event, pos, item) {
+    if (item && (curseries != item.seriesIndex
+                 || curpoint != item.dataIndex)) {
+      $("#tooltip").remove();
+      var series = item.series;
+      var bench = series.benchmark;
+      var x = item.datapoint[0];
+      var format = series.yaxis.tickFormatter;
+      var yaxis = series.yaxis;
+      var y = format(item.datapoint[1], yaxis);
+      var values = results[bench.config][bench.mode].results[bench.metric][x];
+      values = $.map(values, function (y, _) { return format(y, yaxis); });
+      showTooltip(item.pageX, item.pageY,
+                  series.label + " with " + x + " threads = " + y
+                  + "<br/><small>(average of " + values.join(", ") + ")</small>");
+      curseries = item.seriesIndex;
+      curpoint = item.dataIndex;
+    } else if (!item) {
+      $("#tooltip").remove();
+      curpoint = null;            
+    }
+  });
+}
+
+function showTooltip(x, y, contents) {
+  $("<div id=tooltip>" + contents + "</div>").css({
+    position: "absolute",
+    display: "none",
+    top: y + 5,
+    left: x + 5,
+    border: "1px solid #fdd",
+    padding: "2px",
+    "background-color": "#fee",
+    opacity: 0.80
+  }).appendTo("body").fadeIn(200);
+}
+
+$(function () {
+  init();
+  redraw();
+});
+</script>
+</body>
+</html>
