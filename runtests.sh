@@ -41,7 +41,7 @@ parallel cleanup
 parallel prepare
 sleep 60  # let drives quiesce after prepare
 
-modes='rndrd seqrd seqwr rndrd rndwr rndrw'
+modes='rndrd seqrd seqwr rndwr rndrw'
 for mode in $modes; do
   for device in $devices; do
     cd /mnt/$device/tsuna
