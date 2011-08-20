@@ -143,7 +143,6 @@ def process(f, results):
       total_time /= 1000
       record("nreadps", nread / total_time)
       record("nwrite", nwrite / total_time)
-      record("iops", ntotal / total_time)
     elif line.startswith("    total number of events:"):
       record("total_num_events", int(line.split()[-1]))
     #elif line.startswith("    total time taken by event execution:"):
