@@ -82,6 +82,10 @@ function init() {
   choices.find(".all").change(selectall);
   choices.find("input").change(redraw);
   choices.find(".all[for=configs_list]").click();
+  choices.find(".all[for=test_modes_list]").click();
+  $("#idthroughput").click();
+  $("#idiops").click();
+  $("#idreq_95p").click();
 }
 
 function selectall(event) {
