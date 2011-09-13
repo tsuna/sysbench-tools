@@ -58,7 +58,14 @@ function init() {
   });
   configs.sort();
   $.each(configs, function (_, config) {
-    list.append("<br/>" + choice(config, ucfirst(config)));
+    id = config.replace(/[^-_a-z0-9]+/gi, "_");
+    label = ucfirst(config);
+    list.append("<br/>" + choice(id, label));
+    if (id != config) {
+      results[id] = results[config];
+      delete results[config];
+    }
+    results[id].label = label;
   });
   list = $("#test_modes_list");
   $.each(TESTS, function (mode, descr) {
@@ -229,10 +236,11 @@ function enableTooltip(graph) {
       var format = series.yaxis.tickFormatter;
       var yaxis = series.yaxis;
       var y = format(item.datapoint[1], yaxis);
-      var values = results[bench.config][bench.mode].results[bench.metric][x];
+      var res = results[bench.config];
+      var values = res[bench.mode].results[bench.metric][x];
       values = $.map(values, function (y, _) { return format(y, yaxis); });
       showTooltip(item.pageX, item.pageY,
-                  series.label + " with " + x + " threads = " + y
+                  res.label + " with " + x + " threads = " + y
                   + "<br/><small>(average of " + values.join(", ") + ")</small>");
       curseries = item.seriesIndex;
       curpoint = item.dataIndex;
