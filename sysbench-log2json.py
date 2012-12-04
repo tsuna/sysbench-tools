@@ -118,7 +118,7 @@ def process(f, results):
       continue
     elif line.startswith("Operations performed"):
       m = match("Operations performed:"
-                "\s*(\d+) Read, (\d+) Write, (\d+)"
+                "\s*(\d+) [Rr]eads?, (\d+) [Ww]rites?, (\d+)"
                 "\s*Other = (\d+) Total")
       nread, nwrite, nother, ntotal = map(int, m.groups())
       record("nread", nread)
@@ -147,7 +147,7 @@ def process(f, results):
       record("total_num_events", int(line.split()[-1]))
     #elif line.startswith("    total time taken by event execution:"):
     #  record("total_exec_time", float(line.split()[-1]))
-    elif line == "    per-request statistics:\n":
+    elif line in ("    per-request statistics:\n", "    response time:\n"):
       per_req_stats = True
     elif line == "\n":
       per_req_stats = False
